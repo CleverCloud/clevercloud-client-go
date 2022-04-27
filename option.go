@@ -55,6 +55,9 @@ func WithUserOauthConfig(accessToken, accessSecret string) func(*Client) {
 func WithAutoOauthConfig() func(*Client) {
 	return func(c *Client) {
 		conf := c.guessOauth1Config()
+		if conf == nil {
+			return
+		}
 
 		if conf.ConsumerKey == "" {
 			conf.ConsumerKey = OAUTH_CONSUMER_KEY
