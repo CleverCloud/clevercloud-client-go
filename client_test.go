@@ -87,6 +87,25 @@ func Test_client_Get(t *testing.T) {
 	}
 }
 
+func Test_client_empty(t *testing.T) {
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	log.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+	})
+	log.SetOutput(os.Stdout)
+
+	c := client.New(
+		client.WithLogger(log),
+		client.WithAutoOauthConfig(),
+	)
+
+	res := client.Get[client.Nothing](context.Background(), c, "/")
+	if res.HasError() {
+		t.Errorf("expect empty response, err: %s", res.Error().Error())
+	}
+}
+
 func Test_client_Payload(t *testing.T) {
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

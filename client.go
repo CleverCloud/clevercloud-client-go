@@ -61,7 +61,7 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 		var err error
 		body, err = json.Marshal(payload)
 		if err != nil {
-			return fromError[T](errors.Wrap(err, "failed to serilize request body"))
+			return fromError[T](errors.Wrap(err, "failed to serialize request body"))
 		}
 	}
 
@@ -72,6 +72,10 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 
 	otel.Inject(ctx, req)
 	req.Header.Set("User-Agent", userAgent())
+
+	if len(body) != 0 {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	if c.authenticator != nil {
 		c.authenticator.Sign(req)

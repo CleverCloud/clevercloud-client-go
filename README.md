@@ -38,3 +38,8 @@ if res.HasError() {
 fmt.Prinln(res.Payload().ID)
 
 ```
+
+if the operation you want to do does not return anything, use:
+```go
+res := client.Get[client.Nothing](context.Background(), cc, "/v2/self")
+```
