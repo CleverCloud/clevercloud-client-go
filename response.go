@@ -48,7 +48,7 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 
 	switch any(res.payload).(type) {
 	case Nothing:
-		// Do not tr to parse an empty body
+		// Do not try to parse an empty body
 	default:
 		err := json.Unmarshal(res.rawBody, &res.payload)
 		if err != nil {
