@@ -2,9 +2,10 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type Response[T any] interface {
@@ -45,10 +46,15 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 		return res
 	}
 
-	err := json.Unmarshal(res.rawBody, &res.payload)
-	if err != nil {
-		res.err = errors.Wrap(err, "cannot parse response body")
-		return res
+	switch any(res.payload).(type) {
+	case Nothing:
+		// Do not try to parse an empty body
+	default:
+		err := json.Unmarshal(res.rawBody, &res.payload)
+		if err != nil {
+			res.err = errors.Wrap(err, "cannot parse response body")
+			return res
+		}
 	}
 
 	return res
