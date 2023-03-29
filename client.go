@@ -92,6 +92,10 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 	return fromHTTPResponse[T](res)
 }
 
+func (c *Client) Oauth1UserCredentials() (string, string) {
+	return c.authenticator.Oauth1UserCredentials()
+}
+
 // Perform a GET request
 func Get[T any](ctx context.Context, c *Client, path string) Response[T] {
 	return request[T](ctx, c, http.MethodGet, path, nil)

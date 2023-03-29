@@ -6,4 +6,7 @@ import "net/http"
 type Authenticator interface {
 	// Add authentication stuff on an HTTP request
 	Sign(*http.Request)
+
+	// Return current user credentials (oauth1 user token, oauth1 user secret)
+	Oauth1UserCredentials() (string, string)
 }

@@ -75,3 +75,7 @@ func (auth OAuth1Config) generateNonce() string {
 	}
 	return string(b)
 }
+
+func (auth OAuth1Config) Oauth1UserCredentials() (string, string) {
+	return auth.AccessToken, auth.AccessSecret
+}
