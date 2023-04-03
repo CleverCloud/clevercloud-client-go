@@ -180,7 +180,6 @@ func spliter(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
 	if atEOF {
 		return size, data, bufio.ErrFinalToken
-	} else {
-		return size, data, nil
 	}
+	return size, data, nil
 }
