@@ -35,7 +35,7 @@ if res.HasError() {
     // handle res.Error()
 }
 
-fmt.Prinln(res.Payload().ID)
+fmt.Println(res.Payload().ID)
 
 ```
 
