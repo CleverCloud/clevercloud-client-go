@@ -6,28 +6,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Set API endoint, default: API_ENDPOINT
+// Set API endoint, default: API_ENDPOINT.
 func WithEndpoint(endpoint string) func(*Client) {
 	return func(c *Client) {
 		c.endpoint = endpoint
 	}
 }
 
-// Set a logger, default: discard
+// Set a logger, default: discard.
 func WithLogger(logger logrus.FieldLogger) func(*Client) {
 	return func(c *Client) {
 		c.log = logger
 	}
 }
 
-// Set custom http client, default: http.DefaultClient
+// Set custom http client, default: http.DefaultClient.
 func WithHTTPClient(httpClient *http.Client) func(*Client) {
 	return func(c *Client) {
 		c.httpClient = httpClient
 	}
 }
 
-// Set OAuth1 credentials, default: none
+// Set OAuth1 credentials, default: none.
 func WithOauthConfig(consumerKey, consumerSecret, accessToken, accessSecret string) func(*Client) {
 	return func(c *Client) {
 		c.authenticator = &OAuth1Config{
@@ -39,7 +39,7 @@ func WithOauthConfig(consumerKey, consumerSecret, accessToken, accessSecret stri
 	}
 }
 
-// Set OAuth1 user credentials, default: none
+// Set OAuth1 user credentials, default: none.
 func WithUserOauthConfig(accessToken, accessSecret string) func(*Client) {
 	return func(c *Client) {
 		c.authenticator = &OAuth1Config{
@@ -51,7 +51,7 @@ func WithUserOauthConfig(accessToken, accessSecret string) func(*Client) {
 	}
 }
 
-// Set OAuth1 credentials from environment, default: none
+// Set OAuth1 credentials from environment, default: none.
 func WithAutoOauthConfig() func(*Client) {
 	return func(c *Client) {
 		conf := c.guessOauth1Config()
@@ -62,6 +62,7 @@ func WithAutoOauthConfig() func(*Client) {
 		if conf.ConsumerKey == "" {
 			conf.ConsumerKey = OAUTH_CONSUMER_KEY
 		}
+
 		if conf.ConsumerSecret == "" {
 			conf.ConsumerSecret = OAUTH_CONSUMER_SECRET
 		}

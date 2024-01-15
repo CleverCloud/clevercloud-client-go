@@ -4,7 +4,7 @@ test:
 
 .PHONY: deps
 deps:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
 	go mod vendor
 
 .PHONY: ci

@@ -5,9 +5,10 @@ package client
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
-	"math/rand"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,15 +16,15 @@ import (
 	"time"
 )
 
-// OAuth1Config own credentials to contact CleverCloud API
+// OAuth1Config own credentials to contact CleverCloud API.
 type OAuth1Config struct {
-	ConsumerKey    string
-	ConsumerSecret string
+	ConsumerKey    string `json:"-"`
+	ConsumerSecret string `json:"-"`
 	AccessToken    string `json:"token"`
 	AccessSecret   string `json:"secret"`
 }
 
-// Sign an HTTP request with the given OAuth1 signature
+// Sign an HTTP request with the given OAuth1 signature.
 func (auth *OAuth1Config) Sign(req *http.Request) {
 	if auth == nil {
 		return
@@ -33,7 +34,7 @@ func (auth *OAuth1Config) Sign(req *http.Request) {
 	req.Header.Set("Authorization", authHeader)
 }
 
-// Params being any key-value url query parameter pairs
+// Params being any key-value url query parameter pairs.
 func (auth OAuth1Config) buildOAuth1Header(method, path string, params map[string]string) string {
 	vals := url.Values{}
 	vals.Add("oauth_nonce", auth.generateNonce())
@@ -64,15 +65,20 @@ func (auth OAuth1Config) calculateSignature(base, key string) string {
 	hash := hmac.New(sha512.New, []byte(key))
 	hash.Write([]byte(base))
 	signature := hash.Sum(nil)
+
 	return base64.StdEncoding.EncodeToString(signature)
 }
 
+const allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const NONCE_SIZE = 48
+
 func (auth OAuth1Config) generateNonce() string {
-	const allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 48)
+	b := make([]byte, NONCE_SIZE)
 	for i := range b {
-		b[i] = allowed[rand.Intn(len(allowed))]
+		r, _ := rand.Int(rand.Reader, big.NewInt(int64(len(allowed))))
+		b[i] = allowed[r.Int64()]
 	}
+
 	return string(b)
 }
 

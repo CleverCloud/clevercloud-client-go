@@ -28,7 +28,6 @@ type StreamResponse[T any] interface {
 type streamResponse[T any] struct {
 	*http.Response
 	err      error
-	isClosed bool
 	close    chan struct{}
 	payloads chan *StreamEvent[T]
 }
@@ -53,6 +52,8 @@ func fromErrorStream[T any](err error) StreamResponse[T] {
 }
 
 func fromHTTPStream[T any](httpRes *http.Response) StreamResponse[T] {
+	defer httpRes.Body.Close()
+
 	res := &streamResponse[T]{
 		Response: httpRes,
 		close:    make(chan struct{}, 2),
@@ -61,6 +62,7 @@ func fromHTTPStream[T any](httpRes *http.Response) StreamResponse[T] {
 
 	if httpRes.StatusCode >= 300 {
 		res.err = errors.Errorf("invalid response from CleverCloud API (status=%d)", httpRes.StatusCode)
+
 		return res
 	}
 
@@ -76,6 +78,7 @@ func (r *streamResponse[T]) StatusCode() int {
 	if r.Response == nil {
 		return 0
 	}
+
 	return r.Response.StatusCode
 }
 
@@ -83,6 +86,7 @@ func (r *streamResponse[T]) SozuID() string {
 	if r.Response == nil {
 		return ""
 	}
+
 	return r.Response.Header.Get("Sozu-Id")
 }
 
@@ -122,10 +126,12 @@ func (r *streamResponse[T]) loop(scan *bufio.Scanner) {
 
 	raws := make(chan string)
 	errs := make(chan error)
+
 	go func() {
 		for scan.Scan() {
 			if err := scan.Err(); err != nil {
 				errs <- err
+
 				break
 			}
 
@@ -141,9 +147,11 @@ func (r *streamResponse[T]) loop(scan *bufio.Scanner) {
 			return
 		case er := <-errs:
 			r.err = er
+
 			return
 		case <-r.Request.Context().Done():
 			r.err = r.Request.Context().Err()
+
 			return
 		case raw := <-raws:
 			r.payloads <- rawToStreamEvent[T](raw)
@@ -173,7 +181,7 @@ func rawToStreamEvent[T any](raw string) *StreamEvent[T] {
 	return ev
 }
 
-func spliter(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func spliter(data []byte, atEOF bool) (int, []byte, error) {
 	size := len(data)
 
 	data = []byte(strings.TrimSuffix(string(data), "\n\n"))
