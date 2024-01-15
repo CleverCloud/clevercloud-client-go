@@ -3,22 +3,35 @@ run:
 linters:
   enable-all: true
   disable:
-  - funlen
-  - varnamelen
-  - nlreturn
-  - godot
-  - tagliatelle
-  - paralleltest
-  - gomnd
-  - exhaustivestruct
-  - golint
-  - gosec
-  - wsl
-  - revive
-  - lll
-  - maligned
-  - gofumpt
-  - scopelint
-  - interfacer
-  - goimports
-  - gci
+    # deprecatd
+    - golint
+    - scopelint
+    - exhaustivestruct
+    - interfacer
+    - varcheck
+    - deadcode
+    - structcheck
+    - ifshort
+    - maligned
+    - nosnakecase
+    # useless
+    - testableexamples
+    - tagliatelle
+    - varnamelen
+    - usestdlibvars
+    - gofumpt
+    - funlen
+    - lll
+    - revive
+    - stylecheck
+    - exhaustruct
+    - gomnd
+linters-settings:
+  depguard:
+    rules:
+      main:
+        files:
+          - $all
+        deny:
+          - pkg: "github.com/go-logr/logr"
+            desc: "logging is standardised via logrus"

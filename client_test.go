@@ -12,6 +12,8 @@ import (
 )
 
 func Test_client_Get(t *testing.T) {
+	t.Parallel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
@@ -19,7 +21,7 @@ func Test_client_Get(t *testing.T) {
 	})
 	log.SetOutput(os.Stdout)
 
-	c := client.New(
+	clever := client.New(
 		client.WithLogger(log),
 		client.WithAutoOauthConfig(),
 	)
@@ -29,9 +31,6 @@ func Test_client_Get(t *testing.T) {
 		path   string
 	}
 
-	type Self struct {
-	}
-
 	tests := []struct {
 		name    string
 		args    args
@@ -39,21 +38,21 @@ func Test_client_Get(t *testing.T) {
 	}{{
 		name: "main",
 		args: args{
-			client: c,
+			client: clever,
 			path:   "/v4/products/zones", // unauthenticated path
 		},
 		wantErr: false,
 	}, {
 		name: "main authenticated",
 		args: args{
-			client: c,
+			client: clever,
 			path:   "/v2/self",
 		},
 		wantErr: false,
 	}, {
 		name: "not found error",
 		args: args{
-			client: c,
+			client: clever,
 			path:   "/vx/test",
 		},
 		wantErr: true,
@@ -72,9 +71,12 @@ func Test_client_Get(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Get[interface{}](context.Background(), tt.args.client, tt.args.path)
 			if (res.Error() != nil) != tt.wantErr {
 				t.Errorf("client.Get() error = %v, wantErr %v", res.Error().Error(), tt.wantErr)
+
 				return
 			}
 
@@ -88,6 +90,8 @@ func Test_client_Get(t *testing.T) {
 }
 
 func Test_client_empty(t *testing.T) {
+	t.Parallel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
@@ -107,6 +111,8 @@ func Test_client_empty(t *testing.T) {
 }
 
 func Test_client_Payload(t *testing.T) {
+	t.Parallel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
@@ -114,7 +120,7 @@ func Test_client_Payload(t *testing.T) {
 	})
 	log.SetOutput(os.Stdout)
 
-	c := client.New(
+	clever := client.New(
 		client.WithLogger(log),
 		client.WithAutoOauthConfig(),
 	)
@@ -139,9 +145,10 @@ func Test_client_Payload(t *testing.T) {
 		HasPassword    bool          `json:"hasPassword"`
 	}
 
-	res := client.Get[Self](context.Background(), c, "/v2/self")
+	res := client.Get[Self](context.Background(), clever, "/v2/self")
 	if res.HasError() {
 		t.Errorf("client.Get() error = %v", res.Error().Error())
+
 		return
 	}
 
@@ -149,11 +156,14 @@ func Test_client_Payload(t *testing.T) {
 
 	if self := res.Payload(); self.ID == "" {
 		t.Errorf("self.ID shoud not be empty")
+
 		return
 	}
 }
 
 func Test_client_Stream(t *testing.T) {
+	t.Parallel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
@@ -161,7 +171,7 @@ func Test_client_Stream(t *testing.T) {
 	})
 	log.SetOutput(os.Stdout)
 
-	c := client.New(
+	clever := client.New(
 		client.WithLogger(log),
 		client.WithAutoOauthConfig(),
 	)
@@ -173,9 +183,10 @@ func Test_client_Stream(t *testing.T) {
 
 	type logEntry struct{}
 
-	res := client.Stream[logEntry](context.Background(), c, url)
+	res := client.Stream[logEntry](context.Background(), clever, url)
 	if res.Error() != nil {
 		t.Errorf("client.Stream() error = %v", res.Error().Error())
+
 		return
 	}
 
@@ -185,6 +196,7 @@ func Test_client_Stream(t *testing.T) {
 
 		if res.HasError() {
 			t.Errorf("Stream.Payload() error = %v", res.Error().Error())
+
 			return
 		}
 	}
@@ -194,11 +206,14 @@ func Test_client_Stream(t *testing.T) {
 
 	if res.Error() != nil {
 		t.Errorf("client.Stream() error = %v", res.Error().Error())
+
 		return
 	}
 }
 
 func Test_client_StreamContext(t *testing.T) {
+	t.Parallel()
+
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
@@ -206,7 +221,7 @@ func Test_client_StreamContext(t *testing.T) {
 	})
 	log.SetOutput(os.Stdout)
 
-	c := client.New(
+	clever := client.New(
 		client.WithLogger(log),
 		client.WithAutoOauthConfig(),
 	)
@@ -216,13 +231,15 @@ func Test_client_StreamContext(t *testing.T) {
 	peer := os.Getenv("CC_NG_PEER")
 	url := fmt.Sprintf("/v4/networkgroups/organisations/%s/networkgroups/%s/peers/%s/wireguard/configuration/stream", org, ng, peer)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
 	defer cancel()
 
 	type logEntry struct{}
 
-	res := client.Stream[logEntry](ctx, c, url)
+	res := client.Stream[logEntry](ctx, clever, url)
 	if res.Error() != nil {
 		t.Errorf("client.Stream() error = %v", res.Error().Error())
+
 		return
 	}
 
@@ -230,12 +247,15 @@ func Test_client_StreamContext(t *testing.T) {
 		msg, ok := <-res.Payload()
 		if !ok {
 			t.Log("Payload() is closed")
+
 			break
 		}
+
 		t.Logf("MSG: %s", msg)
 
 		if res.HasError() {
 			t.Errorf("Stream.Payload() error = %v", res.Error().Error())
+
 			return
 		}
 	}
@@ -244,11 +264,12 @@ func Test_client_StreamContext(t *testing.T) {
 
 	if res.Error() == nil {
 		t.Errorf("client.Stream() expect context error")
+
 		return
 	}
 }
 
-// Simple Get
+// Simple Get.
 func ExampleGet() {
 	cc := client.New(client.WithAutoOauthConfig())
 
@@ -260,7 +281,7 @@ func ExampleGet() {
 	fmt.Printf("%+v\n", res.Payload())
 }
 
-// SSE
+// SSE.
 func ExampleStream() {
 	type logEntry map[string]interface{}
 

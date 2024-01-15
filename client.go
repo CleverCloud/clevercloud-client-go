@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"runtime"
 	"strings"
@@ -15,25 +15,25 @@ import (
 	otel "go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 )
 
-// Client is a wrapped HTTP client used to contact CleverCloud API
+// Client is a wrapped HTTP client used to contact CleverCloud API.
 type Client struct {
 	httpClient    *http.Client
 	authenticator Authenticator
 	endpoint      string
 	log           logrus.FieldLogger
-	withoutAuth   bool
 }
 
-// New instantiate a new CleverCloud client with options
+// New instantiate a new CleverCloud client with options.
 func New(options ...func(*Client)) *Client {
 	discardLogger := logrus.New()
-	discardLogger.Out = ioutil.Discard
+	discardLogger.Out = io.Discard
 	discardLogger.Level = logrus.PanicLevel
 
 	c := &Client{
-		httpClient: http.DefaultClient,
-		endpoint:   API_ENDPOINT,
-		log:        discardLogger,
+		httpClient:    http.DefaultClient,
+		authenticator: nil,
+		endpoint:      API_ENDPOINT,
+		log:           discardLogger,
 	}
 
 	for _, option := range options {
@@ -57,9 +57,11 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 	ctx = mustContext(ctx)
 
 	body := []byte{}
+
 	if payload != nil {
 		var err error
 		body, err = json.Marshal(payload)
+
 		if err != nil {
 			return fromError[T](errors.Wrap(err, "failed to serialize request body"))
 		}
@@ -84,8 +86,10 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		c.log.Warnf("RESPONSE:\t%s\t%s\t->\t%+v", req.Method, req.URL.String(), err.Error())
+
 		return fromError[T](errors.Wrap(err, "failed to build CleverCloud API request"))
 	}
+
 	c.log.Infof("RESPONSE:\t%s\t%s\t->\t%s", req.Method, req.URL.String(), res.Status)
 	defer res.Body.Close()
 
@@ -96,32 +100,32 @@ func (c *Client) Oauth1UserCredentials() (string, string) {
 	return c.authenticator.Oauth1UserCredentials()
 }
 
-// Perform a GET request
+// Perform a GET request.
 func Get[T any](ctx context.Context, c *Client, path string) Response[T] {
 	return request[T](ctx, c, http.MethodGet, path, nil)
 }
 
-// Perform a POST request
+// Perform a POST request.
 func Post[T any](ctx context.Context, c *Client, path string, payload interface{}) Response[T] {
 	return request[T](ctx, c, http.MethodPost, path, payload)
 }
 
-// Perform a PUT request
+// Perform a PUT request.
 func Put[T any](ctx context.Context, c *Client, path string, payload interface{}) Response[T] {
 	return request[T](ctx, c, http.MethodPut, path, payload)
 }
 
-// Perform a DELETE request
+// Perform a DELETE request.
 func Delete[T any](ctx context.Context, c *Client, path string) Response[T] {
 	return request[T](ctx, c, http.MethodDelete, path, nil)
 }
 
-// Perform a PATCH request
+// Perform a PATCH request.
 func Patch[T any](ctx context.Context, c *Client, path string, payload interface{}) Response[T] {
 	return request[T](ctx, c, http.MethodPatch, path, payload)
 }
 
-// Perform an SSE request
+// Perform an SSE request.
 func Stream[T any](ctx context.Context, c *Client, path string) StreamResponse[T] {
 	url := fmt.Sprintf("%s%s", c.endpoint, path)
 	ctx = mustContext(ctx)
@@ -140,6 +144,8 @@ func Stream[T any](ctx context.Context, c *Client, path string) StreamResponse[T
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
+		res.Body.Close()
+
 		return fromErrorStream[T](errors.Wrap(err, "failed to build CleverCloud API request"))
 	}
 

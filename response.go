@@ -2,7 +2,7 @@ package client
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -33,16 +33,18 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	res := &response[T]{Response: httpRes}
 
 	var readBodyErr error
-	res.rawBody, readBodyErr = ioutil.ReadAll(res.Body)
+	res.rawBody, readBodyErr = io.ReadAll(res.Body)
 
 	if httpRes.StatusCode >= 300 {
 		err := errors.New(string(res.rawBody))
 		res.err = errors.Wrapf(err, "invalid response from CleverCloud API (status=%d)", httpRes.StatusCode)
+
 		return res
 	}
 
 	if readBodyErr != nil {
 		res.err = errors.Wrap(readBodyErr, "cannot read response body")
+
 		return res
 	}
 
@@ -53,6 +55,7 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 		err := json.Unmarshal(res.rawBody, &res.payload)
 		if err != nil {
 			res.err = errors.Wrap(err, "cannot parse response body")
+
 			return res
 		}
 	}
@@ -68,6 +71,7 @@ func (r *response[T]) StatusCode() int {
 	if r.Response == nil {
 		return 0
 	}
+
 	return r.Response.StatusCode
 }
 
@@ -75,6 +79,7 @@ func (r *response[T]) SozuID() string {
 	if r.Response == nil {
 		return ""
 	}
+
 	return r.Response.Header.Get("Sozu-Id")
 }
 
