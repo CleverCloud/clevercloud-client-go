@@ -50,6 +50,17 @@ func (c *Client) guessOauth1ConfigFromConfigFile() *OAuth1Config {
 	path := fmt.Sprintf("%s/%s", CONFIG_DIR, CONFIG_FILE_NAME)
 	configFilePath, _ := xdg.SearchConfigFile(path)
 
+	// while clever-tools does not use right OSX XDG paths, force them
+	// https: //github.com/CleverCloud/clevercloud-client-go/issues/7
+	if configFilePath == "" {
+		home, _ := os.UserHomeDir()
+		cfgPath := fmt.Sprintf("%s/.config/%s", home, path)
+
+		if _, err := os.Stat(cfgPath); err == nil {
+			configFilePath = cfgPath
+		}
+	}
+
 	if configFilePath == "" {
 		c.log.Debug("not user define configuration file")
 
