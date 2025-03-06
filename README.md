@@ -18,7 +18,7 @@ go get -u go.clever-cloud.dev/client
 import "go.clever-cloud.dev/client"
 
 cc := client.New(
-    client.WithAutoOauthConfig(),
+    client.WithAutoAuthConfig(),
 ) 
 
 ```
@@ -42,4 +42,26 @@ fmt.Println(res.Payload().ID)
 if the operation you want to do does not return anything, use:
 ```go
 res := client.Get[client.Nothing](context.Background(), cc, "/v2/self")
+```
+
+### Get a token
+
+#### OAuth1
+
+Get it from [clever-tools](https://github.com/CleverCloud/clever-tools) config `~/.config/clever-cloud/clever-tools.json`
+
+#### Bearer
+
+```sh
+curl -XPOST https://api-bridge.clever-cloud.com/api-tokens \
+  -H "Content-Type: application/json" \
+  --data '{
+    "email": "me@example.com",
+    "password": "MY_SECRET_PASSWORD",
+    "mfaCode": "MFA_CODE", # optional
+    "name": "Token for SDK",
+    "description": "Optional description for this token used by CI foo",
+    "expirationDate": "2025-06-06T00:00:00.000Z"
+  }'
+
 ```

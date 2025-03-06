@@ -91,3 +91,12 @@ func (c *Client) guessOauth1ConfigFromConfigFile() *OAuth1Config {
 
 	return &conf
 }
+
+func (c *Client) guessBearerConfigFromEnv() *BearerConfig {
+	token := os.Getenv("CLEVER_API_TOKEN")
+	if token == "" {
+		c.log.Warn("no CLEVER_API_TOKEN set in env")
+	}
+
+	return &BearerConfig{Token: token}
+}

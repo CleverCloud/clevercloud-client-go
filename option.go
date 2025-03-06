@@ -70,3 +70,29 @@ func WithAutoOauthConfig() func(*Client) {
 		c.authenticator = conf
 	}
 }
+
+// Set OAuth1 credentials from environment, default: none.
+func WithAutoAuthConfig() func(*Client) {
+	return func(c *Client) {
+		WithAutoOauthConfig()(c)
+
+		if c.authenticator == nil {
+			WithEndpoint(BRIDGE_API_ENDPOINT)(c)
+			WithBearerAuth("")(c)
+		}
+	}
+}
+
+func WithBearerAuth(token string) func(c *Client) {
+	return func(c *Client) {
+		if c.endpoint == API_ENDPOINT {
+			c.log.Warnf("bearer tokens need an alternative endpoint, consider using '%s'", BRIDGE_API_ENDPOINT)
+		}
+
+		if token == "" {
+			c.authenticator = c.guessBearerConfigFromEnv()
+		} else {
+			c.authenticator = &BearerConfig{Token: token}
+		}
+	}
+}
