@@ -8,5 +8,5 @@ type Authenticator interface {
 	Sign(req *http.Request)
 
 	// Return current user credentials (oauth1 user token, oauth1 user secret)
-	Oauth1UserCredentials() (string, string)
+	//Oauth1UserCredentials() (string, string)
 }

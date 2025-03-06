@@ -91,3 +91,12 @@ func (c *Client) guessOauth1ConfigFromConfigFile() *OAuth1Config {
 
 	return &conf
 }
+
+func (c *Client) guessBearerConfigFromEnv() *BearerConfig {
+	token := os.Getenv("CC_BEARER_TOKEN")
+	if token == "" {
+		c.log.Warn("no CC_BEARER_TOKEN set in env")
+	}
+
+	return &BearerConfig{Token: token}
+}
