@@ -54,7 +54,7 @@ func WithUserOauthConfig(accessToken, accessSecret string) func(*Client) {
 // Set OAuth1 credentials from environment, default: none.
 func WithAutoOauthConfig() func(*Client) {
 	return func(c *Client) {
-		conf := c.guessOauth1Config()
+		conf := c.GuessOauth1Config()
 		if conf == nil {
 			return
 		}
