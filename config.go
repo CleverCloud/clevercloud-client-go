@@ -10,7 +10,7 @@ import (
 
 // Best effort to grep credentials from environment
 // Used internally or for extracting credentials.
-func (c *Client) guessOauth1Config() *OAuth1Config {
+func (c *Client) GuessOauth1Config() *OAuth1Config {
 	if conf := c.guessOauth1ConfigFromEnv(); conf != nil {
 		c.log.Info("Using Oauth1 user env vars")
 
