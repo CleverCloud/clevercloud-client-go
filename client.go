@@ -53,6 +53,10 @@ func userAgent() string {
 }
 
 func request[T any](ctx context.Context, c *Client, method string, path string, payload interface{}) Response[T] {
+	if c == nil {
+		return fromError[T](errors.New("expect non nil client"))
+	}
+
 	url := fmt.Sprintf("%s%s", c.endpoint, path)
 	ctx = mustContext(ctx)
 
