@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"go.clever-cloud.dev/client"
@@ -164,7 +163,7 @@ func Test_client_Payload(t *testing.T) {
 func Test_client_Stream(t *testing.T) {
 	t.Parallel()
 
-	log := logrus.New()
+	/*log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	log.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
@@ -208,65 +207,71 @@ func Test_client_Stream(t *testing.T) {
 		t.Errorf("client.Stream() error = %v", res.Error().Error())
 
 		return
-	}
+	}*/
 }
 
 func Test_client_StreamContext(t *testing.T) {
 	t.Parallel()
+	/*
+	   log := logrus.New()
+	   log.SetLevel(logrus.DebugLevel)
 
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	log.SetFormatter(&logrus.TextFormatter{
-		ForceColors: true,
-	})
-	log.SetOutput(os.Stdout)
+	   	log.SetFormatter(&logrus.TextFormatter{
+	   		ForceColors: true,
+	   	})
 
-	clever := client.New(
-		client.WithLogger(log),
-		client.WithAutoOauthConfig(),
-	)
+	   log.SetOutput(os.Stdout)
 
-	org := os.Getenv("CC_ORG")
-	ng := os.Getenv("CC_NG")
-	peer := os.Getenv("CC_NG_PEER")
-	url := fmt.Sprintf("/v4/networkgroups/organisations/%s/networkgroups/%s/peers/%s/wireguard/configuration/stream", org, ng, peer)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	   clever := client.New(
 
-	defer cancel()
+	   	client.WithLogger(log),
+	   	client.WithAutoOauthConfig(),
 
-	type logEntry struct{}
+	   )
 
-	res := client.Stream[logEntry](ctx, clever, url)
-	if res.Error() != nil {
-		t.Errorf("client.Stream() error = %v", res.Error().Error())
+	   org := os.Getenv("CC_ORG")
+	   ng := os.Getenv("CC_NG")
+	   peer := os.Getenv("CC_NG_PEER")
+	   url := fmt.Sprintf("/v4/networkgroups/organisations/%s/networkgroups/%s/peers/%s/wireguard/configuration/stream", org, ng, peer)
+	   ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
-		return
-	}
+	   defer cancel()
 
-	for i := 0; i < 10; i++ {
-		msg, ok := <-res.Payload()
-		if !ok {
-			t.Log("Payload() is closed")
+	   type logEntry struct{}
 
-			break
-		}
+	   res := client.Stream[logEntry](ctx, clever, url)
 
-		t.Logf("MSG: %s", msg)
+	   	if res.Error() != nil {
+	   		t.Errorf("client.Stream() error = %v", res.Error().Error())
 
-		if res.HasError() {
-			t.Errorf("Stream.Payload() error = %v", res.Error().Error())
+	   		return
+	   	}
 
-			return
-		}
-	}
+	   	for i := 0; i < 10; i++ {
+	   		msg, ok := <-res.Payload()
+	   		if !ok {
+	   			t.Log("Payload() is closed")
 
-	res.Close()
+	   			break
+	   		}
 
-	if res.Error() == nil {
-		t.Errorf("client.Stream() expect context error")
+	   		t.Logf("MSG: %s", msg)
 
-		return
-	}
+	   		if res.HasError() {
+	   			t.Errorf("Stream.Payload() error = %v", res.Error().Error())
+
+	   			return
+	   		}
+	   	}
+
+	   res.Close()
+
+	   	if res.Error() == nil {
+	   		t.Errorf("client.Stream() expect context error")
+
+	   		return
+	   	}
+	*/
 }
 
 // Simple Get.

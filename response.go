@@ -29,6 +29,9 @@ type response[T any] struct {
 	payload T
 }
 
+// Used when Content-Type is text/plain for example
+type PlainTextString string
+
 func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	res := &response[T]{Response: httpRes}
 
@@ -51,6 +54,8 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	switch any(res.payload).(type) {
 	case Nothing:
 		// Do not try to parse an empty body
+	case PlainTextString:
+		res.payload = any(PlainTextString(res.rawBody)).(T)
 	default:
 		err := json.Unmarshal(res.rawBody, &res.payload)
 		if err != nil {
