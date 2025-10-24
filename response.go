@@ -29,9 +29,6 @@ type response[T any] struct {
 	payload T
 }
 
-// Used when Content-Type is text/plain for example
-type PlainTextString string
-
 func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	res := &response[T]{Response: httpRes}
 
@@ -39,9 +36,12 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	res.rawBody, readBodyErr = io.ReadAll(res.Body)
 
 	if httpRes.StatusCode >= 300 {
-		err := errors.New(string(res.rawBody))
-		res.err = errors.Wrapf(err, "invalid response from CleverCloud API (status=%d)", httpRes.StatusCode)
-
+		if apiErr := APIErrorFrom(res.rawBody); apiErr != nil {
+			res.err = apiErr
+		} else {
+			err := errors.New(string(res.rawBody))
+			res.err = errors.Wrapf(err, "invalid response from CleverCloud API (status=%d)", httpRes.StatusCode)
+		}
 		return res
 	}
 
