@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 )
 
 type APIError struct {
@@ -20,14 +21,49 @@ func (e APIError) Error() string {
 	return e.Message
 }
 
+func (e *APIError) Equal(e2 *APIError) bool {
+	if (e == nil) != (e2 == nil) {
+		return false
+	}
+	if e.RequestID != e2.RequestID || e.Code != e2.Code || e.Message != e2.Message {
+		return false
+	}
+	// what about context ?
+
+	return true
+}
+
+type CCApiError struct {
+	ID      uint64 `json:"id"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
+}
+
+func (e *CCApiError) Into() *APIError {
+	return &APIError{
+		Code:    fmt.Sprintf("%d", e.ID),
+		Message: e.Message,
+		Context: map[string]any{"type": e.Type},
+	}
+}
+
+// Best effor way to grab informations from payload
 func APIErrorFrom(payload []byte) *APIError {
+	dec := json.NewDecoder(bytes.NewReader(payload))
+	dec.DisallowUnknownFields()
+
 	var e APIError
-	err := json.
-		NewDecoder(bytes.NewReader(payload)).
-		Decode(&e)
-	if err != nil {
-		return nil
+	if err := dec.Decode(&e); err == nil {
+		return &e
 	}
 
-	return &e
+	dec = json.NewDecoder(bytes.NewReader(payload))
+	dec.DisallowUnknownFields()
+
+	var ccapiErr CCApiError
+	if err := dec.Decode(&ccapiErr); err == nil {
+		return ccapiErr.Into()
+	}
+
+	return nil
 }
