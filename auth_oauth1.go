@@ -30,13 +30,19 @@ func (auth *OAuth1Config) Sign(req *http.Request) {
 		return
 	}
 
-	authHeader := auth.buildOAuth1Header(req.Method, req.URL.String(), map[string]string{})
+	authHeader := auth.buildOAuth1Header(req.Method, req.URL.String(), req.URL.Query())
 	req.Header.Set("Authorization", authHeader)
 }
 
 // Params being any key-value url query parameter pairs.
-func (auth OAuth1Config) buildOAuth1Header(method, path string, params map[string]string) string {
+func (auth OAuth1Config) buildOAuth1Header(method, path string, params url.Values) string {
 	vals := url.Values{}
+	for queryParam, queryValues := range params {
+		for _, queryValue := range queryValues {
+			vals.Add(queryParam, queryValue)
+		}
+	}
+
 	vals.Add("oauth_nonce", auth.generateNonce())
 	vals.Add("oauth_consumer_key", auth.ConsumerKey)
 	vals.Add("oauth_signature_method", "HMAC-SHA512")
@@ -44,9 +50,6 @@ func (auth OAuth1Config) buildOAuth1Header(method, path string, params map[strin
 	vals.Add("oauth_token", auth.AccessToken)
 	vals.Add("oauth_version", "1.0")
 
-	for k, v := range params {
-		vals.Add(k, v)
-	}
 	// net/url package QueryEscape escapes " " into "+", this replaces it with the percentage encoding of " "
 	parameterString := strings.ReplaceAll(vals.Encode(), "+", "%20")
 
