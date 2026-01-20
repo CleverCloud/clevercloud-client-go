@@ -34,17 +34,24 @@ func (e *APIError) Equal(e2 *APIError) bool {
 }
 
 type CCApiError struct {
-	ID      uint64 `json:"id"`
-	Message string `json:"message"`
-	Type    string `json:"type"`
+	ID      uint64         `json:"id"`
+	Message string         `json:"message"`
+	Type    string         `json:"type"`
+	Fields  map[string]any `json:"fields,omitempty"`
 }
 
 func (e *CCApiError) Into() *APIError {
-	return &APIError{
+	err := &APIError{
 		Code:    fmt.Sprintf("%d", e.ID),
 		Message: e.Message,
 		Context: map[string]any{"type": e.Type},
 	}
+
+	for name, value := range e.Fields {
+		err.Context[name] = value
+	}
+
+	return err
 }
 
 // Best effor way to grab informations from payload
