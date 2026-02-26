@@ -1,18 +1,14 @@
 package client
 
 // Using works of https://github.com/klaidas/go-oauth1/
-// But using a HMAC-SHA512 algorithm
+// use PLAINTEXT signature instead of HMAC-SHA512
 
 import (
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha512"
-	"encoding/base64"
 	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -30,46 +26,25 @@ func (auth *OAuth1Config) Sign(req *http.Request) {
 		return
 	}
 
-	authHeader := auth.buildOAuth1Header(req.Method, req.URL.String(), req.URL.Query())
+	authHeader := auth.buildOAuth1Header()
 	req.Header.Set("Authorization", authHeader)
 }
 
 // Params being any key-value url query parameter pairs.
-func (auth OAuth1Config) buildOAuth1Header(method, path string, params url.Values) string {
-	vals := url.Values{}
-	for queryParam, queryValues := range params {
-		for _, queryValue := range queryValues {
-			vals.Add(queryParam, queryValue)
-		}
-	}
+func (auth OAuth1Config) buildOAuth1Header() string {
+	nonce := auth.generateNonce()
+	timestamp := strconv.Itoa(int(time.Now().Unix()))
 
-	vals.Add("oauth_nonce", auth.generateNonce())
-	vals.Add("oauth_consumer_key", auth.ConsumerKey)
-	vals.Add("oauth_signature_method", "HMAC-SHA512")
-	vals.Add("oauth_timestamp", strconv.Itoa(int(time.Now().Unix())))
-	vals.Add("oauth_token", auth.AccessToken)
-	vals.Add("oauth_version", "1.0")
+	// PLAINTEXT signature: consumerSecret&tokenSecret
+	signature := url.QueryEscape(auth.ConsumerSecret) + "&" + url.QueryEscape(auth.AccessSecret)
 
-	// net/url package QueryEscape escapes " " into "+", this replaces it with the percentage encoding of " "
-	parameterString := strings.ReplaceAll(vals.Encode(), "+", "%20")
-
-	// Calculating Signature Base String and Signing Key
-	signatureBase := strings.ToUpper(method) + "&" + url.QueryEscape(strings.Split(path, "?")[0]) + "&" + url.QueryEscape(parameterString)
-	signingKey := url.QueryEscape(auth.ConsumerSecret) + "&" + url.QueryEscape(auth.AccessSecret)
-	signature := auth.calculateSignature(signatureBase, signingKey)
-
-	return "OAuth oauth_consumer_key=\"" + url.QueryEscape(vals.Get("oauth_consumer_key")) + "\", oauth_nonce=\"" + url.QueryEscape(vals.Get("oauth_nonce")) +
-		"\", oauth_signature=\"" + url.QueryEscape(signature) + "\", oauth_signature_method=\"" + url.QueryEscape(vals.Get("oauth_signature_method")) +
-		"\", oauth_timestamp=\"" + url.QueryEscape(vals.Get("oauth_timestamp")) + "\", oauth_token=\"" + url.QueryEscape(vals.Get("oauth_token")) +
-		"\", oauth_version=\"" + url.QueryEscape(vals.Get("oauth_version")) + "\""
-}
-
-func (auth OAuth1Config) calculateSignature(base, key string) string {
-	hash := hmac.New(sha512.New, []byte(key))
-	hash.Write([]byte(base))
-	signature := hash.Sum(nil)
-
-	return base64.StdEncoding.EncodeToString(signature)
+	return "OAuth oauth_consumer_key=\"" + url.QueryEscape(auth.ConsumerKey) +
+		"\", oauth_nonce=\"" + url.QueryEscape(nonce) +
+		"\", oauth_signature=\"" + url.QueryEscape(signature) +
+		"\", oauth_signature_method=\"PLAINTEXT" +
+		"\", oauth_timestamp=\"" + url.QueryEscape(timestamp) +
+		"\", oauth_token=\"" + url.QueryEscape(auth.AccessToken) +
+		"\", oauth_version=\"1.0\""
 }
 
 const allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
