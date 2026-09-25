@@ -21,6 +21,7 @@ type Client struct {
 	authenticator Authenticator
 	endpoint      string
 	log           logrus.FieldLogger
+	retryPolicy   RetryPolicy
 }
 
 // New instantiate a new CleverCloud client with options.
@@ -34,6 +35,7 @@ func New(options ...func(*Client)) *Client {
 		authenticator: nil,
 		endpoint:      API_ENDPOINT,
 		log:           discardLogger,
+		retryPolicy:   NotRetryablePolicy,
 	}
 
 	for _, option := range options {
@@ -71,33 +73,54 @@ func request[T any](ctx context.Context, c *Client, method string, path string, 
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
-	if err != nil {
-		return fromError[T](errors.Wrap(err, "failed to build CleverCloud API request"))
+	retryPolicy := c.retryPolicy
+	if retryPolicy == nil {
+		retryPolicy = NotRetryablePolicy
 	}
 
-	otel.Inject(ctx, req)
-	req.Header.Set("User-Agent", userAgent())
+	var res Response[T]
 
-	if len(body) != 0 {
-		req.Header.Set("Content-Type", "application/json")
+	for retries := 0; ; retries++ {
+		// The request is rebuilt on every attempt: its body is a reader, and the
+		// previous attempt drained it.
+		req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+		if err != nil {
+			return fromError[T](errors.Wrap(err, "failed to build CleverCloud API request"))
+		}
+
+		otel.Inject(ctx, req)
+		req.Header.Set("User-Agent", userAgent())
+
+		if len(body) != 0 {
+			req.Header.Set("Content-Type", "application/json")
+		}
+
+		if c.authenticator != nil {
+			c.authenticator.Sign(req)
+		}
+
+		httpRes, err := c.httpClient.Do(req)
+		if err != nil {
+			c.log.Warnf("RESPONSE:\t%s\t%s\t->\t%+v", req.Method, req.URL.String(), err.Error())
+
+			res = fromError[T](errors.Wrap(err, "failed to build CleverCloud API request"))
+		} else {
+			c.log.Infof("RESPONSE:\t%s\t%s\t->\t%s", req.Method, req.URL.String(), httpRes.Status)
+
+			res = fromHTTPResponse[T](httpRes)
+			httpRes.Body.Close()
+		}
+
+		if !res.HasError() {
+			return res
+		}
+
+		if !retryPolicy(ctx, req, apiErrorOf(res), retries) {
+			return res
+		}
+
+		c.log.Infof("RETRY:\t%s\t%s\t->\tretry %d", method, url, retries+1)
 	}
-
-	if c.authenticator != nil {
-		c.authenticator.Sign(req)
-	}
-
-	res, err := c.httpClient.Do(req)
-	if err != nil {
-		c.log.Warnf("RESPONSE:\t%s\t%s\t->\t%+v", req.Method, req.URL.String(), err.Error())
-
-		return fromError[T](errors.Wrap(err, "failed to build CleverCloud API request"))
-	}
-
-	c.log.Infof("RESPONSE:\t%s\t%s\t->\t%s", req.Method, req.URL.String(), res.Status)
-	defer res.Body.Close()
-
-	return fromHTTPResponse[T](res)
 }
 
 func (c *Client) Authenticator() Authenticator {

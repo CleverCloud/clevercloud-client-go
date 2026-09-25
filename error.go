@@ -11,6 +11,12 @@ type APIError struct {
 	Code      string         `json:"code"`
 	Context   map[string]any `json:"context"`
 	Message   string         `json:"error"`
+
+	// StatusCode is the HTTP status the API answered with. It is not part of the
+	// payload: the client fills it in, so that a RetryPolicy can tell a server
+	// error apart from a client one. It is 0 when the request never reached the
+	// API.
+	StatusCode int `json:"-"`
 }
 
 func (e APIError) String() string {

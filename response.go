@@ -37,6 +37,7 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 
 	if httpRes.StatusCode >= 300 {
 		if apiErr := APIErrorFrom(res.rawBody); apiErr != nil {
+			apiErr.StatusCode = httpRes.StatusCode
 			res.err = apiErr
 		} else {
 			err := errors.New(string(res.rawBody))
@@ -70,6 +71,24 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 
 func fromError[T any](err error) Response[T] {
 	return &response[T]{err: err}
+}
+
+// apiErrorOf returns the failure of a response as an APIError, so that a
+// RetryPolicy always gets a real struct to decide on. Responses whose body could
+// not be parsed, and requests that never reached the API, are wrapped in a
+// synthetic error rather than handed over as nil.
+func apiErrorOf[T any](res Response[T]) *APIError {
+	var apiErr *APIError
+	if errors.As(res.Error(), &apiErr) {
+		return apiErr
+	}
+
+	message := ""
+	if err := res.Error(); err != nil {
+		message = err.Error()
+	}
+
+	return &APIError{Message: message, StatusCode: res.StatusCode()}
 }
 
 func (r *response[T]) StatusCode() int {
