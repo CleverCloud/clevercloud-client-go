@@ -20,6 +20,18 @@ func WithLogger(logger logrus.FieldLogger) func(*Client) {
 	}
 }
 
+// Set the policy deciding whether a failed request is sent again,
+// default: NotRetryablePolicy. A nil policy resets it to the default.
+func WithRetryPolicy(policy RetryPolicy) func(*Client) {
+	return func(c *Client) {
+		if policy == nil {
+			policy = NotRetryablePolicy
+		}
+
+		c.retryPolicy = policy
+	}
+}
+
 // Set custom http client, default: http.DefaultClient.
 func WithHTTPClient(httpClient *http.Client) func(*Client) {
 	return func(c *Client) {
