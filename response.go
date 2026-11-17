@@ -38,6 +38,7 @@ func fromHTTPResponse[T any](httpRes *http.Response) Response[T] {
 	if httpRes.StatusCode >= 300 {
 		if apiErr := APIErrorFrom(res.rawBody); apiErr != nil {
 			apiErr.StatusCode = httpRes.StatusCode
+			apiErr.Header = httpRes.Header
 			res.err = apiErr
 		} else {
 			err := errors.New(string(res.rawBody))
@@ -88,7 +89,12 @@ func apiErrorOf[T any](res Response[T]) *APIError {
 		message = err.Error()
 	}
 
-	return &APIError{Message: message, StatusCode: res.StatusCode()}
+	apiErr = &APIError{Message: message, StatusCode: res.StatusCode()}
+	if r, ok := res.(*response[T]); ok && r.Response != nil {
+		apiErr.Header = r.Header
+	}
+
+	return apiErr
 }
 
 func (r *response[T]) StatusCode() int {

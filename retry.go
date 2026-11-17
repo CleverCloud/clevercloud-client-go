@@ -26,7 +26,9 @@ const ServerErrorRetryDelay = 500 * time.Millisecond
 // apiErr is never nil. When the API answered with something the client could not
 // parse as an APIError, it is a synthetic one carrying the status code and the
 // raw message. When the request never reached the API at all — a transport
-// error, a cancelled context — StatusCode is 0.
+// error, a cancelled context — StatusCode is 0. Header holds the headers of the
+// response, nil when there was none: a policy reads there how long the API
+// asks to wait, Retry-After on a 429 for instance.
 type RetryPolicy func(ctx context.Context, req *http.Request, apiErr *APIError, retries int) bool
 
 // NotRetryablePolicy never retries. This is the default.

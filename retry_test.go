@@ -288,3 +288,76 @@ func TestRetryPolicy_ServerErrorGivesUpOnCancelledContext(t *testing.T) {
 		t.Fatalf("expected no retry after cancellation, got %d calls", got)
 	}
 }
+
+// A policy waiting for as long as the API asks needs the response headers, on
+// an error the API described as well as on one it did not.
+func TestRetryPolicy_ReceivesResponseHeaders(t *testing.T) {
+	t.Parallel()
+
+	for name, body := range map[string]string{
+		"described error": `{"id":11000,"message":"Rate limit exceeded","type":"error"}`,
+		"unknown body":    `slow down`,
+	} {
+		body := body
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Retry-After", "42")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(body))
+			}))
+			t.Cleanup(srv.Close)
+
+			var status int
+			var retryAfter string
+			cc := client.New(
+				client.WithEndpoint(srv.URL),
+				client.WithRetryPolicy(func(_ context.Context, _ *http.Request, apiErr *client.APIError, _ int) bool {
+					status = apiErr.StatusCode
+					retryAfter = apiErr.Header.Get("Retry-After")
+
+					return false
+				}),
+			)
+
+			res := client.Get[payload](context.Background(), cc, "/any")
+			if !res.HasError() {
+				t.Fatal("expected the request to fail")
+			}
+
+			if status != http.StatusTooManyRequests || retryAfter != "42" {
+				t.Fatalf("policy got status %d and Retry-After %q, want 429 and 42", status, retryAfter)
+			}
+		})
+	}
+}
+
+// Nothing answered: there are no headers, and reading one must not panic.
+func TestRetryPolicy_NoHeadersWithoutAResponse(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	srv.Close()
+
+	called := false
+	cc := client.New(
+		client.WithEndpoint(srv.URL),
+		client.WithRetryPolicy(func(_ context.Context, _ *http.Request, apiErr *client.APIError, _ int) bool {
+			called = true
+			if apiErr.Header != nil || apiErr.Header.Get("Retry-After") != "" {
+				t.Errorf("unexpected headers: %v", apiErr.Header)
+			}
+
+			return false
+		}),
+	)
+
+	if res := client.Get[payload](context.Background(), cc, "/any"); !res.HasError() {
+		t.Fatal("expected the request to fail")
+	}
+	if !called {
+		t.Fatal("the policy was not called")
+	}
+}
