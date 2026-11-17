@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
 type APIError struct {
@@ -17,6 +18,12 @@ type APIError struct {
 	// error apart from a client one. It is 0 when the request never reached the
 	// API.
 	StatusCode int `json:"-"`
+
+	// Header holds the headers of the response. Like StatusCode it is not part of
+	// the payload: the client fills it in, so that a RetryPolicy can read what the
+	// API says about waiting, such as Retry-After on a 429. It is nil when the
+	// request never reached the API.
+	Header http.Header `json:"-"`
 }
 
 func (e APIError) String() string {
